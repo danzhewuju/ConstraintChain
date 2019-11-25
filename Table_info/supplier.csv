@@ -1,0 +1,8 @@
+name,key_primary,foreign_key
+S_SUPPKEY,1
+S_NAME,0
+S_ADDRESS,0
+S_NATIONKEY,0,nation.n_nationkey
+S_PHONE,0
+S_ACCTBAL,0
+S_COMMENT,0

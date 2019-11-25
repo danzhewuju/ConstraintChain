@@ -1,0 +1,16 @@
+select count(*) from customer;  #150000
+select count(*) from customer where c_mktsegment = 'BUILDING' ;  #30142
+select count(*) from orders ;   #1500000
+select count(*) from customer, orders
+where c_mktsegment = 'BUILDING' and c_custkey = o_custkey;  #303959
+select count(*) from customer,orders
+where c_mktsegment = 'BUILDING'  and c_custkey = o_custkey
+and o_orderdate < date '1995-03-15';  #147126
+select count(*) from lineitem;  #6001215
+select count(*) from customer, orders, lineitem
+where c_mktsegment = 'BUILDING' and c_custkey = o_custkey
+and l_orderkey = o_orderkey and o_orderdate < date '1995-03-15'; #588507
+select count(*) from customer,orders,lineitem
+where c_mktsegment = 'BUILDING' and c_custkey = o_custkey
+and l_orderkey = o_orderkey and o_orderdate < date '1995-03-15'
+and l_shipdate > date '1995-03-15';  #30519

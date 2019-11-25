@@ -1,0 +1,4 @@
+name,key_primary,foreign_key
+R_REGIONKEY,1
+R_NAME,0
+R_COMMENT,0

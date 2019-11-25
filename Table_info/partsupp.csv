@@ -1,0 +1,6 @@
+name,key_primary,foreign_key
+PS_PARTKEY,1,part.p_partkey
+PS_SUPPKEY,1,supplier.s_suppkey
+PS_AVAILQTY,0
+PS_SUPPLYCOST,0
+PS_COMMENT,0

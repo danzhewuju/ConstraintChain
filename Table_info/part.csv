@@ -1,0 +1,10 @@
+name,key_primary,foreign_key
+P_PARTKEY,1
+P_NAME,0
+P_MFGR,0
+P_BRAND,0
+P_TYPE,0
+P_SIZE,0
+P_CONTAINER,0
+P_RETAILPRICE,0
+P_COMMENT,0

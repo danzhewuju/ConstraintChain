@@ -1,0 +1,9 @@
+name,key_primary,foreign_key
+C_CUSTKEY,1,
+C_NAME,0
+C_ADDRESS,0
+C_NATIONKEY,0,nation.n_nationkey
+C_PHONE,0
+C_ACCTBAL,0
+C_MKTSEGMENT,0
+C_COMMENT,0
