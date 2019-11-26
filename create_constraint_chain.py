@@ -28,8 +28,8 @@ class table_structure:
     def _parse_table(self, path_table_struct):
         # 对于单个表结构进行解析
         structure = self.get_table_info(path_table_struct)
-        name = path_table_struct.split("/")[-1]
-        table_name = re.findall(r'(.+).csv', name)[0]
+        name = os.path.basename(path_table_struct)
+        table_name = name.split(".")[0]
 
         columns = structure['name'].tolist()
         key_primary_ori = structure['key_primary'].tolist()
@@ -121,13 +121,13 @@ class table_structure:
                     # 主节点的解析
                     op = list(c for c in add_constraint_condition if c in "<>=")[0]
                     probability = now_running_result / last_running_result
-                    probability = round(probability, 5)
+                    probability = round(probability, 6)
                     op_left = add_constraint_condition[:add_constraint_condition.index(op)]
                     constraint_chain[char_table[add_constraint_condition.split("_")[0]]] += \
                         "[0, {}@{}, {}]; ".format(op_left, op, probability)
                 else:
                     probability = now_running_result / last_running_result
-                    probability = round(probability, 5)
+                    probability = round(probability, 6)
                     # 主键和外键的解析
                     op = list(c for c in add_constraint_condition if c in "<>=")[0]
                     op_left = add_constraint_condition[:add_constraint_condition.index(op)]  # o_custkey
