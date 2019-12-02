@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import re
+import pickle
 
 
 def get_full_path(dir_path):
@@ -45,26 +46,26 @@ class table_structure:
         table_info = {"columns": columns, "key_primary": key_primary, "key_foreign": key_foreign}
         self.all_table_structure[table_name] = table_info
 
-    def _parse_sql(self, path_sql):
-        f = open(path_sql, 'r')
+    def _parse_sql(self, data_sql):
+
         sql_statement = []  # sql 语句的划分解析
         sql_sentence = ""
-        for line in f:
-            line = line.replace('\n', ' ')
-            sql_sentence += line
-            if ";" in sql_sentence:
-                sql_statement.append(sql_sentence)
-                sql_sentence = ""
+        for d in data_sql:
+            count = d['count']
+            sql = d['sql']
+            sql_sentence = "{} ##{}".format(sql, count)
+            sql_statement.append(sql_sentence)
         self.sql_statement = sql_statement
-        f.close()
+        # f.close()
 
     # select count(*) from customer where c_mktsegment = 'BUILDING' ;  #30142
     def _sql_parser(self, sql_sentence):  # sql解析器，对于单一可执行的sql的语句进行解析
+        special = [" between "]
         parse_result = {}
         # 运行结果的解析
-        running_result = int(re.findall(r'#(.+)', sql_sentence)[0])  # 这个语句在真实数据库中的运行结果
+        running_result = int(re.findall(r'##(.+)', sql_sentence)[0])  # 这个语句在真实数据库中的运行结果
         # 可运行的sql语句的解析
-        sql_sentence_real = re.findall(r'(.+)#', sql_sentence)[0]
+        sql_sentence_real = re.findall(r'(.+)##', sql_sentence)[0]
         # 表的解析
         if "where" in sql_sentence_real:
             select_table = re.findall(r'from (.+) where', sql_sentence_real)[0]
@@ -75,14 +76,31 @@ class table_structure:
 
         # 约束条件的解析
         if "where" in sql_sentence_real:
+            del_strip = lambda x: x.lstrip().rstrip()
             constraint_condition = re.findall(r'where(.+);', sql_sentence_real)[0]
-            constraint_condition = constraint_condition.replace(' ', '')
-            constraint_condition = constraint_condition.split("and")
+            # constraint_condition = constraint_condition.replace(' ', '')
+            constraint_condition = constraint_condition.split(" and ")
+            # 特殊模式的拼接
+            constraint_condition_result = []
+            i = 0
+            while i < len(constraint_condition):
+                if " between " in constraint_condition[i]:
+                    result = constraint_condition[i] + " and " + "'" + constraint_condition[i + 1]
+                    result = "{} between '{}'".format(result.split(" between ")[0], result.split(" between ")[-1])
+                    i += 1
+                    constraint_condition_result.append(result)
+                else:
+                    result = constraint_condition[i]
+                    constraint_condition_result.append(result)
+                i += 1
+            constraint_condition_result = [del_strip(x) for x in constraint_condition_result]
+            # constraint_condition.lstrip()
+            # constraint_condition.rstrip()
         else:
-            constraint_condition = []
+            constraint_condition_result = []
         parse_result["running_result"] = running_result
         parse_result["select_table"] = select_table
-        parse_result["constraint_condition"] = constraint_condition
+        parse_result["constraint_condition"] = constraint_condition_result
 
         return parse_result
 
@@ -98,6 +116,7 @@ class table_structure:
         # 记录上一次所有的约束条件
         # 当前增加的约束条件
         last_constraint_condition = []
+        op_list = [" <= ", " >= ", " <> ", " < ", " > ", " = ", " not in ", " in ", " not like ", " like ", " between "]
         now_running_result = 0
         last_running_result = 0
         for sql_s in self.sql_statement:
@@ -117,14 +136,20 @@ class table_structure:
                 add_constraint_condition = list(
                     set(all_constraint_condition).difference(set(last_constraint_condition)))[0]
                 # 选择节点的解析
-                if "'" in add_constraint_condition:
+
+                # print(add_constraint_condition)
+                op_p = list(filter(lambda x: x in add_constraint_condition, op_list))
+                # print(op_p)
+                op = op_p[0]
+                # print(op)
+
+                if op != ' = ' or "'" in add_constraint_condition:
                     # 主节点的解析
-                    op = list(c for c in add_constraint_condition if c in "<>=")[0]
                     probability = now_running_result / last_running_result
                     if probability == 1.0:
                         continue
                     probability = round(probability, 6)
-                    op_left = add_constraint_condition[:add_constraint_condition.index(op)]
+                    op_left = add_constraint_condition.split(op)[0]
                     constraint_chain[char_table[add_constraint_condition.split("_")[0]]] += \
                         "[0, {}@{}, {}]; ".format(op_left, op, probability)
                 else:
@@ -133,9 +158,8 @@ class table_structure:
                         continue
                     probability = round(probability, 6)
                     # 主键和外键的解析
-                    op = list(c for c in add_constraint_condition if c in "<>=")[0]
-                    op_left = add_constraint_condition[:add_constraint_condition.index(op)]  # o_custkey
-                    op_right = add_constraint_condition[add_constraint_condition.index(op) + 1:]
+                    op_left = add_constraint_condition.split(op)[0]  # o_custkey
+                    op_right = add_constraint_condition.split(op)[1]
                     left_table = char_table[op_left.split("_")[0]]
                     right_table = char_table[op_right.split("_")[0]]
 
@@ -150,9 +174,13 @@ class table_structure:
                         chain = "[2, {}, {}, {}, {}, {}]; ".format(op_left, probability, full_foreign_key, m, n)
 
                     else:
-                        k = self.all_table_structure[left_table]["key_primary"][op_left]
-                        m, n = int(pow(2, k)), int(pow(2, k + 1))
-                        chain = "[1, {}, {}, {}]; ".format(op_left, m, n)
+                        if op_left in self.all_table_structure[left_table]["key_primary"].keys():
+                            k = self.all_table_structure[left_table]["key_primary"][op_left]
+                            m, n = int(pow(2, k)), int(pow(2, k + 1))
+                            chain = "[1, {}, {}, {}]; ".format(op_left, m, n)
+                        else:
+                            chain = "[0, {}@{}, {}]; ".format(op_left, op, probability)
+
                     constraint_chain[left_table] += chain
                     # 解析右边的操作符
                     if op_right in self.all_table_structure[right_table]["key_foreign"].keys():
@@ -163,9 +191,12 @@ class table_structure:
                         chain = "[2, {}, {}, {}, {}, {}]; ".format(op_right, probability, full_foreign_key, m, n)
 
                     else:
-                        k = self.all_table_structure[right_table]["key_primary"][op_right]
-                        m, n = int(pow(2, k)), int(pow(2, k + 1))
-                        chain = "[1, {}, {}, {}]; ".format(op_right, m, n)
+                        if op_right in self.all_table_structure[right_table]["key_primary"].keys():
+                            k = self.all_table_structure[right_table]["key_primary"][op_right]
+                            m, n = int(pow(2, k)), int(pow(2, k + 1))
+                            chain = "[1, {}, {}, {}]; ".format(op_right, m, n)
+                        else:
+                            chain = "[0, {}@{}, {}]; ".format(op_left, op, probability)
                     constraint_chain[right_table] += chain
             if len(all_constraint_condition) >= len(last_constraint_condition):
                 last_constraint_condition = all_constraint_condition.copy()
@@ -173,11 +204,24 @@ class table_structure:
         return constraint_chain
 
 
-def run(path_table="./Table_info", path_sql="SQL/sql_info"):
-    T = table_structure(path_table, path_sql)
-    constraint_chain = T.generating_constraint_chain()
-    for k, p in constraint_chain.items():
-        print(p)
+def run(path_table="./Table_info", path_sql="SQL/parse_result.pkl"):
+    error = ["12.sql", "13.sql", "4.sql", "5.sql", "3.sql", "14.sql", "8.sql", "7.sql", "9.sql"]
+    with open(path_sql, 'rb') as f:
+        data = pickle.load(f)
+        for k, v in data.items():
+            if k in error:
+                continue
+            # if k in allow_list:
+            print(" The information of {}".format(k))
+            print("SQL")
+            for p in v:
+                print("{} #{}".format(p['sql'], p['count']))
+            print("Constraint Chain:")
+            T = table_structure(path_table, v)
+            constraint_chain = T.generating_constraint_chain()
+            for k, p in constraint_chain.items():
+                print(p)
+            print("\n")
 
 
 if __name__ == '__main__':

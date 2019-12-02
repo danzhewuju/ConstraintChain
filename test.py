@@ -7,6 +7,7 @@
 # @Software: PyCharm
 import re
 import os
+import pickle
 
 if __name__ == '__main__':
     # path = "Table_info/customer.csv"
@@ -60,16 +61,23 @@ if __name__ == '__main__':
     # name = path.split("/")[-1]
     # name = re.findall(r'(.+).csv', name)[0]
     # print(name)
-    path = "intro/hw.py"
-    basename = os.path.basename(path)
-    dirname = os.path.dirname(path)
-    print(basename, dirname)
-    dirname, basename = os.path.split(path)
-    print(basename, dirname)
-    print(os.path.realpath(path))
-    for i in range(10):
-        if i==0:
-            continue
-        print(i)
+    # path = "intro/hw.py"
+    # basename = os.path.basename(path)
+    # dirname = os.path.dirname(path)
+    # print(basename, dirname)
+    # dirname, basename = os.path.split(path)
+    # print(basename, dirname)
+    # print(os.path.realpath(path))
 
+    path = "SQL/parse_result.pkl"
+    with open(path, 'rb') as f:
+        data = pickle.load(f)
+        print(data)
+        data_sql = data['9.sql']
+        print(data_sql)
+        for p in data_sql:
+            print("{} #{}".format(p['sql'], p['count']))
 
+    str_a = "l_discount between 0.03 - 0.01 and 0.03 + 0.01"
+    if " between (.+) and " in str_a:
+        print(True)
