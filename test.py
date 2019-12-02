@@ -60,10 +60,16 @@ if __name__ == '__main__':
     # name = path.split("/")[-1]
     # name = re.findall(r'(.+).csv', name)[0]
     # print(name)
-    path = "intro\\hw.py"
+    path = "intro/hw.py"
     basename = os.path.basename(path)
     dirname = os.path.dirname(path)
     print(basename, dirname)
     dirname, basename = os.path.split(path)
     print(basename, dirname)
+    print(os.path.realpath(path))
+    for i in range(10):
+        if i==0:
+            continue
+        print(i)
+
 

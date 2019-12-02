@@ -121,12 +121,16 @@ class table_structure:
                     # 主节点的解析
                     op = list(c for c in add_constraint_condition if c in "<>=")[0]
                     probability = now_running_result / last_running_result
+                    if probability == 1.0:
+                        continue
                     probability = round(probability, 6)
                     op_left = add_constraint_condition[:add_constraint_condition.index(op)]
                     constraint_chain[char_table[add_constraint_condition.split("_")[0]]] += \
                         "[0, {}@{}, {}]; ".format(op_left, op, probability)
                 else:
                     probability = now_running_result / last_running_result
+                    if probability == 1.0:
+                        continue
                     probability = round(probability, 6)
                     # 主键和外键的解析
                     op = list(c for c in add_constraint_condition if c in "<>=")[0]
@@ -169,8 +173,12 @@ class table_structure:
         return constraint_chain
 
 
-if __name__ == '__main__':
-    T = table_structure("./Table_info", "SQL/sql_info")
+def run(path_table="./Table_info", path_sql="SQL/sql_info"):
+    T = table_structure(path_table, path_sql)
     constraint_chain = T.generating_constraint_chain()
     for k, p in constraint_chain.items():
         print(p)
+
+
+if __name__ == '__main__':
+    run()
