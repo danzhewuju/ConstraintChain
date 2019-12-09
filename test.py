@@ -73,11 +73,14 @@ if __name__ == '__main__':
     with open(path, 'rb') as f:
         data = pickle.load(f)
         print(data)
-        data_sql = data['9.sql']
+        data_sql = data['2.sql']
         print(data_sql)
         for p in data_sql:
             print("{} #{}".format(p['sql'], p['count']))
+    #
+    # str_a = "l_discount between 0.03 - 0.01 and 0.03 + 0.01"
+    # if " between (.+) and " in str_a:
+    #     print(True)
 
-    str_a = "l_discount between 0.03 - 0.01 and 0.03 + 0.01"
-    if " between (.+) and " in str_a:
-        print(True)
+    if (type(eval('yuaho'))) == int :
+        print("T")
