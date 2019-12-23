@@ -1,0 +1,5 @@
+name,key_primary,foreign_key
+N_NATIONKEY,1
+N_NAME,0
+N_REGIONKEY,0,region.r_regionkey
+N_COMMENT,0
